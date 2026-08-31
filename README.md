@@ -122,6 +122,58 @@ usage:
 
 ~~~~
 
+## Install
+
+### Homebrew
+
+This repository doubles as a Homebrew tap:
+
+~~~~
+brew tap jtfrey/uvc-util https://github.com/jtfrey/uvc-util
+brew install uvc-util
+~~~~
+
+That installs the prebuilt, ad-hoc-signed universal (x86_64 + arm64) binary attached to the most
+recent release, so no compiler is needed.  It requires macOS 12 or newer, because the program calls
+`kIOMainPortDefault`.  To update later:
+
+~~~~
+brew update && brew upgrade uvc-util
+~~~~
+
+`brew install --HEAD uvc-util` builds the tip of the `master` branch from source instead.
+
+### Releases (maintainers)
+
+Pushing a `vN.N` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
+builds the universal binary, attaches `uvc-util-<version>-macos-universal.tar.gz` to the GitHub
+release, and commits the matching `url`/`version`/`sha256` into `Formula/uvc-util.rb` on `master`.
+No checksums have to be computed by hand.
+
+The tag also drives what `uvc-util --version` prints, so nothing has to be edited in the source at
+release time; the workflow fails if the built binary disagrees with the tag.  A plain `make` in a
+git checkout takes the version from `git describe`, and `make VERSION=1.3` states it outright when
+building from a source tarball.  Without either, the program falls back to the `UVCUtilVersion`
+struct in `src/uvc-util.m`.  If the push to `master` is rejected (branch protection,
+for instance), the same edit can be made locally:
+
+~~~~
+.github/scripts/update-formula.py <version> <asset-url> <sha256>
+~~~~
+
+### Makefile
+
+A Makefile is provided in the top-level directory.  It needs only the compiler that the XCode
+command-line tools install:
+
+~~~~
+make
+make install PREFIX=/usr/local
+~~~~
+
+`PREFIX` defaults to `/usr/local`, so the program lands in `/usr/local/bin/uvc-util`.  `DESTDIR`
+is honored for staged installs, and `make uninstall` removes the installed program.
+
 ## Build & Run
 
 The source package includes an XCode project file in the top-level directory.  As time goes by — and more releases of XCode are made by Apple — any guarantee of compatibility decreases toward zero.

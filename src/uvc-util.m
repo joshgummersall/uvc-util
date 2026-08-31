@@ -20,6 +20,9 @@
 
 //
 
+// The build may state the deployment target it actually used; otherwise fall
+// back to what the SDK implies.
+#ifndef UVC_UTIL_COMPAT_VERSION
 #if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_9)
 #define UVC_UTIL_COMPAT_VERSION   "pre-10.9"
 #elif (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_10)
@@ -28,6 +31,7 @@
 #define UVC_UTIL_COMPAT_VERSION   "10.10"
 #else 
 #define UVC_UTIL_COMPAT_VERSION   "10.11"
+#endif
 #endif
 
 static NumVersion       UVCUtilVersion = {
@@ -44,6 +48,14 @@ UVCUtilVersionString(void)
   BOOL              ready = NO;
   
   if ( ! ready ) {
+#ifdef UVC_UTIL_VERSION
+    // Version handed down by the build -- the release tag, by way of the
+    // VERSION variable in the top-level Makefile.
+    snprintf(versionString, sizeof(versionString), "%s (for Mac OS X %s)",
+                UVC_UTIL_VERSION,
+                UVC_UTIL_COMPAT_VERSION
+              );
+#else
     const char      *format;
     
     switch ( UVCUtilVersion.stage ) {
@@ -72,6 +84,7 @@ UVCUtilVersionString(void)
                 UVCUtilVersion.nonRelRev,
                 UVC_UTIL_COMPAT_VERSION
               );
+#endif
   }
   
   return (const char*)versionString;

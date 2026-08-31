@@ -1,0 +1,76 @@
+name: release
+
+# Publishes a signed universal binary for a vN.N tag and repoints
+# Formula/uvc-util.rb at it, so that `brew upgrade` picks the release up.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish (e.g. v1.3)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Build universal binary
+        run: make universal VERSION="${TAG#v}"
+
+      - name: Verify binary
+        run: |
+          lipo -info uvc-util
+          codesign --verify --verbose uvc-util
+          ./uvc-util --list-controls > /dev/null
+          reported=$(./uvc-util --version | head -1)
+          echo "$reported"
+          case "$reported" in
+            "${TAG#v} "*) ;;
+            *) echo "::error::binary reports '$reported', expected ${TAG#v}"; exit 1 ;;
+          esac
+
+      - name: Package
+        id: package
+        run: |
+          version="${TAG#v}"
+          asset="uvc-util-${version}-macos-universal.tar.gz"
+          tar -czf "$asset" uvc-util LICENSE README.md CHANGELOG.md
+          {
+            echo "version=$version"
+            echo "asset=$asset"
+            echo "sha256=$(shasum -a 256 "$asset" | cut -d ' ' -f 1)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Attach binary to the release
+        run: |
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --generate-notes
+          gh release upload "$TAG" "${{ steps.package.outputs.asset }}" --clobber
+
+      - name: Point the formula at the release
+        run: |
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${{ steps.package.outputs.asset }}"
+          git fetch origin master
+          git checkout -B master origin/master
+          python3 .github/scripts/update-formula.py \
+            "${{ steps.package.outputs.version }}" "$url" "${{ steps.package.outputs.sha256 }}"
+          if git diff --quiet -- Formula/uvc-util.rb; then
+            echo "formula already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Point Homebrew formula at ${TAG}" -- Formula/uvc-util.rb
+          git push origin master

@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build for the runner
+        run: make
+
+      - name: Smoke-test
+        # --list-devices needs a camera attached, so it is not usable here.
+        run: |
+          ./uvc-util --version
+          ./uvc-util --list-controls > /dev/null
+
+      - name: Version follows the build, not the source
+        run: |
+          make clean
+          make VERSION=9.9-ci
+          ./uvc-util --version | grep -q '^9\.9-ci '
+
+      - name: Build universal binary
+        run: |
+          make clean
+          make universal VERSION=9.9-ci
+          lipo -info uvc-util
+          codesign --verify --verbose uvc-util
+          # The universal build also reports the deployment target it used.
+          ./uvc-util --version | grep -q 'Mac OS X 12.0'
+
+      - name: Check formula style
+        run: brew style Formula/uvc-util.rb
