@@ -1,6 +1,9 @@
 class UvcUtil < Formula
   desc "USB Video Class (UVC) control management utility for macOS"
   homepage "https://github.com/jtfrey/uvc-util"
+  url "https://github.com/joshgummersall/uvc-util/releases/download/v1.3/uvc-util-1.3-macos-universal.tar.gz"
+  version "1.3"
+  sha256 "9dbce2f1be6a8fc61ace25ecda478207e20fe8111fc8b68088841d3886033f85"
   license "MIT"
   head "https://github.com/jtfrey/uvc-util.git", branch: "master"
   # The stable url/version/sha256 lines are written here by
