@@ -27,14 +27,19 @@ jobs:
           ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Build universal binary
-        run: make universal
+        run: make universal VERSION="${TAG#v}"
 
       - name: Verify binary
         run: |
           lipo -info uvc-util
           codesign --verify --verbose uvc-util
-          ./uvc-util --version
           ./uvc-util --list-controls > /dev/null
+          reported=$(./uvc-util --version | head -1)
+          echo "$reported"
+          case "$reported" in
+            "${TAG#v} "*) ;;
+            *) echo "::error::binary reports '$reported', expected ${TAG#v}"; exit 1 ;;
+          esac
 
       - name: Package
         id: package

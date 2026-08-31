@@ -148,7 +148,13 @@ brew update && brew upgrade uvc-util
 Pushing a `vN.N` tag runs [`.github/workflows/release.yml`](.github/workflows/release.yml), which
 builds the universal binary, attaches `uvc-util-<version>-macos-universal.tar.gz` to the GitHub
 release, and commits the matching `url`/`version`/`sha256` into `Formula/uvc-util.rb` on `master`.
-No checksums have to be computed by hand.  If the push to `master` is rejected (branch protection,
+No checksums have to be computed by hand.
+
+The tag also drives what `uvc-util --version` prints, so nothing has to be edited in the source at
+release time; the workflow fails if the built binary disagrees with the tag.  A plain `make` in a
+git checkout takes the version from `git describe`, and `make VERSION=1.3` states it outright when
+building from a source tarball.  Without either, the program falls back to the `UVCUtilVersion`
+struct in `src/uvc-util.m`.  If the push to `master` is rejected (branch protection,
 for instance), the same edit can be made locally:
 
 ~~~~

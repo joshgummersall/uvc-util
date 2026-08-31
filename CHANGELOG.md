@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release workflow that publishes a signed universal binary for each `vN.N` tag and repoints the
   formula at it, plus a CI workflow that builds and smoke-tests every push and pull request.
 
+### Changed
+- `uvc-util --version` now reports the version the build was given -- the release tag in CI, or
+  `git describe` in a working copy -- rather than a hand-maintained struct, and states the real
+  deployment target of a universal build instead of the SDK-implied one.
+
 ## [1.1.0]
 Baseline release to open source.
 

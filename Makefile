@@ -22,6 +22,15 @@ CFLAGS          ?= -Os
 CFLAGS          += -std=gnu99 -Wall
 LDLIBS          += -framework IOKit -framework Foundation
 
+# Version reported by `uvc-util --version`, taken from the closest vN.N tag so
+# that a release binary names its own tag.  Release tarballs carry no git
+# metadata, so pass it in explicitly there: `make VERSION=1.3`.  When neither is
+# available the program falls back to the UVCUtilVersion struct in uvc-util.m.
+VERSION         ?= $(shell git describe --tags --match 'v*' --dirty 2>/dev/null | sed 's/^v//')
+ifneq ($(strip $(VERSION)),)
+CFLAGS          += -DUVC_UTIL_VERSION='"$(strip $(VERSION))"'
+endif
+
 SRCDIR          := src
 BUILDDIR        := build
 TARGET          := uvc-util
@@ -55,7 +64,8 @@ universal: $(SLICE_BINARIES)
 
 $(BUILDDIR)/$(TARGET)-%: $(SOURCES) $(HEADERS)
 	@mkdir -p $(BUILDDIR)
-	$(CC) $(CFLAGS) -arch $* -mmacosx-version-min=$(MACOS_MIN) $(LDFLAGS) -o $@ $(SOURCES) $(LDLIBS)
+	$(CC) $(CFLAGS) -arch $* -mmacosx-version-min=$(MACOS_MIN) \
+	  -DUVC_UTIL_COMPAT_VERSION='"$(MACOS_MIN)"' $(LDFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 install: $(TARGET)
 	$(INSTALL) -d $(DESTDIR)$(BINDIR)
